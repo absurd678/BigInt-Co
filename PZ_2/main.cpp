@@ -1,4 +1,4 @@
-//g++ -std=c++11 -O2 main.cpp bigint.cpp -lgmp -lgmpxx -o prime_checker
+//g++ -std=c++17 -O2 main.cpp bigint.cpp -lgmp -lgmpxx -o prime_checker
 // ./prime_checker
 
 #include "bigint.h"
