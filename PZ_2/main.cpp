@@ -190,14 +190,14 @@ int main() {
         
         // 4. Генерация случайных простых чисел
         cout << "\n" << string(60, '=') << endl;
-        cout << "ГЕНЕРАЦИЯ СЛУЧАЙНЫХ ПРОСТЫХ ЧИСЕЛ" << endl;
+        cout << "ГЕНЕРАЦИЯ СЛУЧАЙНЫХ ЧИСЕЛ" << endl;
         cout << string(60, '=') << endl;
         
         for (int digits : {5, 10, 15}) {
-            cout << "\n--- Генерация простого числа из " << digits << " цифр ---" << endl;
+            cout << "\n--- Генерация числа из " << digits << " цифр ---" << endl;
             
             auto start = chrono::high_resolution_clock::now();
-            BigInt prime = BigInt::generateRandomPrime(digits, gen);
+            BigInt prime = BigInt(digits, gen);
             auto end = chrono::high_resolution_clock::now();
             auto duration = chrono::duration_cast<chrono::milliseconds>(end - start);
             
