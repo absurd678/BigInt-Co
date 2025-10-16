@@ -1,4 +1,0 @@
-/home/artem/BigInt-Co/build/CMakeFiles/bigint.dir
-/home/artem/BigInt-Co/build/CMakeFiles/bigint_demo.dir
-/home/artem/BigInt-Co/build/CMakeFiles/edit_cache.dir
-/home/artem/BigInt-Co/build/CMakeFiles/rebuild_cache.dir
