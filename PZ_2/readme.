@@ -24,10 +24,12 @@ bool result = BigInt::isPrimeStandard(BigInt("1000000007"));
 
 
 2. Решето Эратосфена (isPrimeEratosthenes)
+Принцип: "Просеивание" чисел - вычеркиваем все составные числа, оставшиеся - простые
+
 bool result = BigInt::isPrimeEratosthenes(BigInt("1000000007"));
 
 Как работает:
-    Создает "решето" - массив true/false
+    Создает "решето" со всеми числами - массив true/false
     Вычеркивает кратные числа
     Оставшиеся "true" - простые числа
 
