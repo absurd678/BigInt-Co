@@ -481,24 +481,28 @@ bool BigInt::isPrimeStandard(const BigInt& n) {
     if (n < BigInt(2)) return false;
     if (n == BigInt(2)) return true;
     
+    //----------------------
     // Проверка на четность
     if (n.digits[0] % 2 == 0) return false;
     
+    //----------------------
     // Проверка деления на 5
     if (n.digits[0] == 5 || n.digits[0] == 0) return n == BigInt(5);
     
+    //----------------------
     // Проверка суммы цифр на делимость на 3
     int sum = 0;
     for (int digit : n.digits) sum += digit;
     if (sum % 3 == 0) return n == BigInt(3);
     
+    //----------------------
     // Проверка всех чисел до квадратного корня
     BigInt i(3);
     BigInt limit = sqrt(n) + BigInt(1);
     
     while (i <= limit) {
         if (n % i == BigInt(0)) return false;
-        i = i + BigInt(2);
+        i = i + BigInt(2); //we do check only odd 
     }
     
     return true;
@@ -529,7 +533,7 @@ bool BigInt::isPrimeEratosthenes(const BigInt& n, int limit) {
             return sieve[num];
         }
     } catch (...) {
-        // Число слишком большое для long long
+        //[HACK:] Число слишком большое для long long
     }
     
     // Для больших чисел используем комбинацию методов
@@ -537,6 +541,7 @@ bool BigInt::isPrimeEratosthenes(const BigInt& n, int limit) {
 }
 
 // 3. Решето Аткина
+// [Link:] https://habr.com/en/articles/468833/
 bool BigInt::isPrimeAtkin(const BigInt& n, int limit) {
     if (n < BigInt(2)) return false;
     
@@ -568,9 +573,10 @@ bool BigInt::isPrimeAtkin(const BigInt& n, int limit) {
                 }
             }
             
+            // Remove every square of prime
             for (long long i = 5; i * i <= num; i++) {
                 if (sieve[i]) {
-                    for (long long j = i * i; j <= num; j += i * i) {
+                    for (long long j = i * i; j <= num; j += i * i) { //step is i^2
                         sieve[j] = false;
                     }
                 }
@@ -579,13 +585,17 @@ bool BigInt::isPrimeAtkin(const BigInt& n, int limit) {
             return sieve[num];
         }
     } catch (...) {
-        // Число слишком большое
+        //[HACK:] Число слишком большое для long long
     }
     
     return isPrimeStandard(n);
 }
 
 // 4. Тест Люка-Лемера для чисел Мерсенна
+// [Link:] https://habr.com/en/articles/468833/
+// [NOTE:] some mistakes in article, be carefull
+// тест предназначен только для чисел особого вида 2^p-1, 
+// где p — простое число. Такие числа называются числами Мерсенна.
 bool BigInt::lucasLehmerTest(int p) {
     if (p < 2) return false;
     if (p == 2) return true;
@@ -594,6 +604,7 @@ bool BigInt::lucasLehmerTest(int p) {
     BigInt mersenne = (BigInt(2) ^ BigInt(p)) - BigInt(1);
     BigInt s(4);
     
+
     for (int i = 0; i < p - 2; ++i) {
         s = (s * s - BigInt(2)) % mersenne;
     }
