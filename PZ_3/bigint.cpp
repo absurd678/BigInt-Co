@@ -625,3 +625,31 @@ BigInt BigInt::generateRandomPrime(int numDigits, mt19937& gen) {
 
     return candidate;
 }
+
+// Добавьте в конец bigint.cpp перед последней закрывающей скобкой:
+
+int BigInt::bitLength() const {
+    if (isZero()) return 1;
+    
+    BigInt temp = this->abs();
+    int bits = 0;
+    
+    while (!temp.isZero()) {
+        temp = temp / BigInt(2);
+        bits++;
+    }
+    
+    return bits;
+}
+
+bool BigInt::getBit(int pos) const {
+    if (pos < 0) return false;
+    
+    BigInt temp = this->abs();
+    for (int i = 0; i < pos; i++) {
+        temp = temp / BigInt(2);
+        if (temp.isZero()) return false;
+    }
+    
+    return (temp % BigInt(2) == BigInt(1));
+}

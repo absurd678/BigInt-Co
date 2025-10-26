@@ -5,13 +5,19 @@
 #include <random>
 #include <vector>
 #include <map>
+#include <tuple>  // Добавлено для std::tuple
 
 class PrimalityTests {
 private:
     static std::vector<BigInt> getWitnesses(const BigInt& n, int count);
     static bool isWitness(const BigInt& a, const BigInt& n);
+    
+    // Методы для теста Люка
     static bool isStrongLucasWitness(const BigInt& n, const BigInt& d, int p, int q);
-    static BigInt findD(const BigInt& n);
+    static int jacobiSymbol(const BigInt& a, const BigInt& n);  // Добавлено
+    static std::tuple<BigInt, int, int> findLucasParameters(const BigInt& n);  // Изменено
+    static BigInt lucasSequenceU(const BigInt& k, int p, int q, const BigInt& n);  // Добавлено
+    static BigInt lucasSequenceV(const BigInt& k, int p, int q, const BigInt& n);  // Добавлено
     
 public:
     // 1. Тест Миллера-Рабина

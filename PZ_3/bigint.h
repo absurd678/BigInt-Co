@@ -283,6 +283,20 @@ public:
      * Модульное возведение в степень
      */
     static BigInt modPow(const BigInt& base, const BigInt& exponent, const BigInt& mod);
+
+    // В раздел публичных методов в bigint.h добавьте:
+
+/**
+ * Возвращает количество битов в двоичном представлении числа
+ */
+int bitLength() const;
+
+/**
+ * Возвращает значение бита в указанной позиции (0 - младший бит)
+ * @param pos - позиция бита
+ * @return значение бита (0 или 1)
+ */
+bool getBit(int pos) const;
 };
 
 #endif
