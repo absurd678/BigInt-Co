@@ -328,20 +328,11 @@ bool PrimalityTests::lucasStrongTest(const BigInt& n, int iterations) {
     // Находим параметры для теста Люка
     auto params = findLucasParameters(n);
     BigInt d = get<0>(params);
-    int p = get<1>(params);
+    int p_val = get<1>(params);  // Переименовано чтобы избежать конфликта
     int q = get<2>(params);
     
-    // Проводим тест с разными параметрами для повышения надежности
-    for (int i = 0; i < iterations; ++i) {
-        if (isStrongLucasWitness(n, d, p, q)) {
-            return false; // Найден свидетель составности
-        }
-        
-        // Можно также менять параметры для каждой итерации
-        // для большей надежности (опционально)
-    }
-    
-    return true; // Вероятно простое
+    // ОДНОЙ итерации достаточно для детерминированного теста
+    return !isStrongLucasWitness(n, d, p_val, q);
 }
 
 void PrimalityTests::lucasStrongStatistics(const BigInt& n, int tests_count) {
