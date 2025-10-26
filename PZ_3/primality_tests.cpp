@@ -351,7 +351,7 @@ void PrimalityTests::lucasStrongStatistics(const BigInt& n, int tests_count) {
     
     for (int i = 0; i < tests_count; ++i) {
         auto start = chrono::high_resolution_clock::now();
-        bool result = lucasStrongTest(n, 1); // 1 итерация достаточно для детерминированного теста
+        bool result = lucasStrongTest(n, 1); //[NOTE:] 2d argument is rudiment, can be removed
         auto end = chrono::high_resolution_clock::now();
         auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
         
@@ -386,7 +386,9 @@ void PrimalityTests::lucasStrongStatistics(const BigInt& n, int tests_count) {
 
 bool PrimalityTests::bpswTest(const BigInt& n, int iterations) {
     // BPSW = Miller-Rabin + Lucas-Strong
-    return millerRabinTest(n, iterations) && lucasStrongTest(n, iterations);
+    BigInt a = BigInt(2);
+    return !isWitness(a, n) && lucasStrongTest(n, iterations); //better variant
+    //return millerRabinTest(n, iterations) && lucasStrongTest(n, iterations);
 }
 
 void PrimalityTests::bpswStatistics(const BigInt& n, int tests_count) {
