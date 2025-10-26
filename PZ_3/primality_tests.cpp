@@ -25,6 +25,7 @@ vector<BigInt> PrimalityTests::getWitnesses(const BigInt& n, int count) {
 }
 
 bool PrimalityTests::isWitness(const BigInt& a, const BigInt& n) {
+    //[NOTE:] can be removed
     if (n < BigInt(2)) return false;
     if (n == BigInt(2)) return true;
     if (n.getLastDigit() % 2 == 0) return false;  // Исправлено
@@ -37,13 +38,15 @@ bool PrimalityTests::isWitness(const BigInt& a, const BigInt& n) {
         s++;
     }
     
-    // Вычисляем a^d mod n
+    // Вычисляем (a^d mod n) = x
     BigInt x = BigInt::modPow(a, d, n);
     
+    //first condition
     if (x == BigInt(1) || x == n - BigInt(1)) {
         return false; // Не свидетель
-    }
+    } 
     
+    //second condition. Using squares to speed things up
     for (int i = 0; i < s - 1; ++i) {
         x = (x * x) % n;
         if (x == n - BigInt(1)) {
@@ -57,10 +60,12 @@ bool PrimalityTests::isWitness(const BigInt& a, const BigInt& n) {
 // ==================== 1. ТЕСТ МИЛЛЕРА-РАБИНА ====================
 
 bool PrimalityTests::millerRabinTest(const BigInt& n, int iterations) {
+    //[NOTE:] can be removed
     if (n < BigInt(2)) return false;
     if (n == BigInt(2)) return true;
     if (n.getLastDigit() % 2 == 0) return false;  // Исправлено
     
+    //[NOTE:] can be removed
     // Маленькие простые числа для быстрой проверки
     vector<int> small_primes = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29};
     for (int p : small_primes) {
@@ -68,10 +73,12 @@ bool PrimalityTests::millerRabinTest(const BigInt& n, int iterations) {
         if (n % BigInt(p) == BigInt(0)) return false;
     }
     
+    //Generate Witnesses in [2;n-2]
     auto witnesses = getWitnesses(n, iterations);
     
+    //Check every Witness
     for (const auto& a : witnesses) {
-        if (isWitness(a, n)) {
+        if (isWitness(a, n)) { //Main moment
             return false; // Найден свидетель составности
         }
     }
