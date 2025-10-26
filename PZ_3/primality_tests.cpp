@@ -288,7 +288,6 @@ bool PrimalityTests::isStrongLucasWitness(const BigInt& n, const BigInt& d, int 
         s++;
     }
     
-    // Вычисляем U_d mod n
     BigInt u_d = lucasSequenceU(d_temp, p, q, n);
     
     // Проверка 1: U_d ≡ 0 (mod n)
