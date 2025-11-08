@@ -1,0 +1,6 @@
+{
+    "cmake.sourceDirectory": "/home/artem/BigInt-Co/PZ_2",
+    "files.associations": {
+        "ostream": "cpp"
+    }
+}
