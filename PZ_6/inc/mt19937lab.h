@@ -1,4 +1,17 @@
 #include <chrono>
+
+/*
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   ИНИЦИАЛ   │───▶│  ГЕНЕРАЦИЯ  │───▶│   ЗАКАЛКА   │───▶ СЛУЧАЙНОЕ
+│   СОСТОЯНИЯ │    │  СОСТОЯНИЯ  │    │ (TEMPERING) │      ЧИСЛО
+└─────────────┘    └─────────────┘    └─────────────┘
+                         │
+                         ▼
+                 ┌─────────────┐
+                 │   СДВИГ     │
+                 │  СОСТОЯНИЯ  │
+                 └─────────────┘
+*/
 // ---------- Собственная реализация MT19937 ----------
 struct MT19937lab {
     static constexpr uint32_t N = 624;
@@ -16,13 +29,15 @@ struct MT19937lab {
         mt[0] = seed;
         for (idx = 1; idx < N; ++idx) {
             // mt[i] = (1812433253 * (mt[i-1] ^ (mt[i-1] >> 30)) + i)
-            uint32_t x = mt[idx - 1] ^ (mt[idx - 1] >> 30);
-            mt[idx] = 1812433253u * x + idx; // 1812433253u - магическое число для рассеивания
+            uint32_t x = mt[idx - 1] ^ (mt[idx - 1] >> 30); //a part of formula (1)
+            mt[idx] = 1812433253u * x + idx; ///also a part of formula (1)
+            //formula (1): xₖ₊ₙ = xₖ₊ₘ ⊕ (xₖᵘ | xₖ₊₁ˡ) × A. u - upper, l - lower masks
+            // 1812433253u - магическое число для рассеивания
         }
         idx = N; // чтобы при первом вызове случился twist()
     }
 
-    void twist() {
+    void twist() { //РЕКУРРЕНТНОЕ ПРЕОБРАЗОВАНИЕ
         for (uint32_t i = 0; i < N; ++i) {
             uint32_t y = (mt[i] & UPPER_MASK) | (mt[(i + 1) % N] & LOWER_MASK); // 
             uint32_t yA = y >> 1;
@@ -33,7 +48,7 @@ struct MT19937lab {
     }
 
     uint32_t next_u32() {
-        if (idx >= N) twist();
+        if (idx >= N) twist(); //  СДВИГ СОСТОЯНИЯ 
 
         uint32_t y = mt[idx++];
 
