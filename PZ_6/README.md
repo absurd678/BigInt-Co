@@ -141,8 +141,13 @@ cmake --build build -j
 
 4. Запустить исполняемый файл:
 
+Перейти в директорию build!
 ```bash
-./build/bigint_demo
+cd ~/BigInt-Co/PZ_6/build
+```
+Можно запускать:
+```bash
+./bigint_demo
 ```
 
 ---

@@ -95,7 +95,7 @@ void plotData(const string& dataFile, const string& title, double mean_val, doub
 }
 
 int main() {
-    // run(); // Генерация данных
+    //run(); // Генерация данных
     vector<string> prefixes = {"lcg", "mt", "entropy"};
     vector<int> sizes = {100, 1000, 10000};
 
