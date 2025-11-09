@@ -4,8 +4,8 @@ struct MT19937lab {
     static constexpr uint32_t N = 624;
     static constexpr uint32_t M = 397;
     static constexpr uint32_t MATRIX_A   = 0x9908B0DFu; // a
-    static constexpr uint32_t UPPER_MASK = 0x80000000u; // most significant w-r bits
-    static constexpr uint32_t LOWER_MASK = 0x7FFFFFFFu; // least significant r bits
+    static constexpr uint32_t UPPER_MASK = 0x80000000u; // most significant w-r bits aka верхняя маска
+    static constexpr uint32_t LOWER_MASK = 0x7FFFFFFFu; // least significant r bits aka нижняя маска
 
     uint32_t mt[N];
     uint32_t idx;
@@ -17,14 +17,14 @@ struct MT19937lab {
         for (idx = 1; idx < N; ++idx) {
             // mt[i] = (1812433253 * (mt[i-1] ^ (mt[i-1] >> 30)) + i)
             uint32_t x = mt[idx - 1] ^ (mt[idx - 1] >> 30);
-            mt[idx] = 1812433253u * x + idx;
+            mt[idx] = 1812433253u * x + idx; // 1812433253u - магическое число для рассеивания
         }
         idx = N; // чтобы при первом вызове случился twist()
     }
 
     void twist() {
         for (uint32_t i = 0; i < N; ++i) {
-            uint32_t y = (mt[i] & UPPER_MASK) | (mt[(i + 1) % N] & LOWER_MASK);
+            uint32_t y = (mt[i] & UPPER_MASK) | (mt[(i + 1) % N] & LOWER_MASK); // 
             uint32_t yA = y >> 1;
             if (y & 0x1u) yA ^= MATRIX_A;
             mt[i] = mt[(i + M) % N] ^ yA;

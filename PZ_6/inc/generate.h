@@ -5,6 +5,7 @@
 #include <string>
 
 using namespace std;
+#define DIGITS_TO_GEN 10
 
 // Вспомогательная функция записи в CSV
 void saveToCSV(const vector<int>& data, const string& filename) {
@@ -24,15 +25,13 @@ void saveToCSV(const vector<int>& data, const string& filename) {
 vector<int> generateLCG(size_t count, size_t numDigits) {
     vector<int> results;
     BigInt temp;
+    BigInt maxInt(numeric_limits<int>::max());
+    
     for (size_t i = 0; i < count; ++i) {
-        temp.initLCG(numDigits);  // Автоматически по времени
-        try {
-            int val = temp.toInt();
-            results.push_back(val);
-        } catch (const overflow_error&) {
-            // Если не влезло в int — кладём 0 (или можно пропустить)
-            results.push_back(0);
-        }
+        temp.initLCG(numDigits);
+        // Use modulo to fit in int range
+        BigInt safeVal = temp % (maxInt + BigInt(1));
+        results.push_back(safeVal.toInt());
     }
     return results;
 }
@@ -41,14 +40,12 @@ vector<int> generateLCG(size_t count, size_t numDigits) {
 vector<int> generateMT(size_t count, size_t numDigits) {
     vector<int> results;
     BigInt temp;
+    BigInt maxInt(numeric_limits<int>::max());
+    
     for (size_t i = 0; i < count; ++i) {
         temp.initMT(numDigits);
-        try {
-            int val = temp.toInt();
-            results.push_back(val);
-        } catch (const overflow_error&) {
-            results.push_back(0);
-        }
+        BigInt safeVal = temp % (maxInt + BigInt(1));
+        results.push_back(safeVal.toInt());
     }
     return results;
 }
@@ -57,14 +54,12 @@ vector<int> generateMT(size_t count, size_t numDigits) {
 vector<int> generateMouseEntropy(size_t count, size_t numDigits) {
     vector<int> results;
     BigInt temp;
+    BigInt maxInt(numeric_limits<int>::max());
+    
     for (size_t i = 0; i < count; ++i) {
-        temp.initFromMouseEntropy(numDigits, 50, 200); // быстро собрать энтропию
-        try {
-            int val = temp.toInt();
-            results.push_back(val);
-        } catch (const overflow_error&) {
-            results.push_back(0);
-        }
+        temp.initFromMouseEntropy(numDigits, 50, 200);
+        BigInt safeVal = temp % (maxInt + BigInt(1));
+        results.push_back(safeVal.toInt());
     }
     return results;
 }
@@ -82,17 +77,17 @@ int run() {
 
         // LCG
         cout << "  Using LCG..." << endl;
-        auto lcg_data = generateLCG(size, 10); // 10 цифр — точно влезет в int
+        auto lcg_data = generateLCG(size, DIGITS_TO_GEN); // 10 цифр — точно влезет в int
         saveToCSV(lcg_data, prefixes[0] + to_string(size) + ".csv");
 
         // MT
         cout << "  Using MT..." << endl;
-        auto mt_data = generateMT(size, 10);
+        auto mt_data = generateMT(size, DIGITS_TO_GEN);
         saveToCSV(mt_data, prefixes[1] + to_string(size) + ".csv");
 
         // Mouse Entropy
         cout << "  Using Mouse Entropy..." << endl;
-        auto ent_data = generateMouseEntropy(size, 10);
+        auto ent_data = generateMouseEntropy(size, DIGITS_TO_GEN);
         saveToCSV(ent_data, prefixes[2] + to_string(size) + ".csv");
     }
 

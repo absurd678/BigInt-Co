@@ -51,12 +51,13 @@ double variance(const vector<int>& data, double mean_val) {
 int countDuplicates(const vector<int>& data) {
     map<int, int> freq;
     for (int x : data) {
-        freq[x]++;
+        freq[x]++; //  сколько раз встречается число
     }
     int duplicates = 0;
     for (const auto& p : freq) {
         if (p.second > 1) {
-            duplicates += p.second;
+            duplicates += p.second - 1; //  сколько совпадений
+
         }
     }
     return duplicates;
@@ -95,7 +96,7 @@ void plotData(const string& dataFile, const string& title, double mean_val, doub
 }
 
 int main() {
-    //run(); // Генерация данных
+    run(); // Генерация данных
     vector<string> prefixes = {"lcg", "mt", "entropy"};
     vector<int> sizes = {100, 1000, 10000};
 
