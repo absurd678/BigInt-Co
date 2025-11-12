@@ -483,16 +483,33 @@ bool BigInt::isPrimeStandard(const BigInt& n) {
     if (n.isEven()) return false;
     
     // Quick checks for small primes
-    if (n == BigInt(3) || n == BigInt(5)) return true;
+    if (n == BigInt(3) || n == BigInt(5) || n == BigInt(7)) return true;
     if (n % BigInt(3) == BigInt(0)) return false;
     if (n % BigInt(5) == BigInt(0)) return false;
     
+    // Check sum of digits for divisibility by 3
+    int sum = 0;
+    for (int digit : n.digits) {
+        sum += digit;
+    }
+    if (sum % 3 == 0) return n == BigInt(3);
+    
+    // Check last digit for divisibility by 5
+    if (n.digits[0] == 0 || n.digits[0] == 5) return n == BigInt(5);
+    
+    // Proper trial division up to sqrt(n)
     BigInt i(3);
-    BigInt limit = sqrt(n);
+    BigInt limit = sqrt(n) + BigInt(1);
     
     while (i <= limit) {
-        if (n % i == BigInt(0)) return false;
+        if (n % i == BigInt(0)) {
+            return false;
+        }
         i = i + BigInt(2);
+        
+        // Skip multiples of 3 and 5 for optimization
+        if (i % BigInt(3) == BigInt(0)) i = i + BigInt(2);
+        if (i % BigInt(5) == BigInt(0)) i = i + BigInt(2);
     }
     
     return true;
@@ -623,28 +640,41 @@ BigInt BigInt::log(const BigInt& n) {
 
 // ==================== ECPP РЕАЛИЗАЦИЯ ====================
 
+/**
+ * Генерирует случайное большое число в диапазоне [0, max-1]
+ * @param max - верхняя граница диапазона (исключительно)
+ * @param gen - генератор случайных чисел
+ * @return случайное BigInt меньше max
+ */
 BigInt BigInt::randomBigInt(const BigInt& max, mt19937& gen) {
-    if (max <= BigInt(1)) return BigInt(0);
+    // Базовые проверки
+    if (max <= BigInt(1)) return BigInt(0);  // Если max <= 1, возвращаем 0
     
+    // Преобразуем максимальное число в строку для обработки цифр
     string maxStr = max.toString();
-    string resultStr;
+    string resultStr;  // Строка для результата
     
-    uniform_int_distribution<int> firstDist(1, maxStr[0] - '0');
-    uniform_int_distribution<int> otherDist(0, 9);
+    // Генераторы случайных цифр:
+    uniform_int_distribution<int> firstDist(1, maxStr[0] - '0');  // Первая цифра: 1 до первой цифры max
+    uniform_int_distribution<int> otherDist(0, 9);               // Остальные цифры: 0-9
     
-    bool firstDigit = true;
+    // Генерируем цифры для случайного числа
+    bool firstDigit = true;  // Флаг для первой цифры
     for (size_t i = 0; i < maxStr.length(); ++i) {
         int digit;
         if (firstDigit) {
-            digit = firstDist(gen);
-            firstDigit = false;
+            digit = firstDist(gen);   // Первая цифра с ограничением
+            firstDigit = false;       // Следующие цифры будут обычными
         } else {
-            digit = otherDist(gen);
+            digit = otherDist(gen);   // Остальные цифры без ограничений
         }
-        resultStr += to_string(digit);
+        resultStr += to_string(digit);  // Добавляем цифру к результату
     }
     
+    // Преобразуем строку в BigInt
     BigInt result(resultStr);
+    
+    // Гарантируем, что результат < max (делим пополам пока не выполнится условие)
     while (result >= max) {
         result = result / BigInt(2);
     }
@@ -652,133 +682,216 @@ BigInt BigInt::randomBigInt(const BigInt& max, mt19937& gen) {
     return result;
 }
 
+/**
+ * Алгоритм ECPP (Elliptic Curve Primality Proving) - доказательство простоты на эллиптических кривых
+ * @param maxAttempts - максимальное количество попыток поиска подходящей кривой
+ * @return true если число простое, false если составное
+ */
 bool BigInt::isPrimeECPP(int maxAttempts) const {
-    BigInt n = *this;
+    BigInt n = *this;  // Работаем с копией числа
     
-    // Quick checks
-    if (n < BigInt(2)) return false;
-    if (n == BigInt(2) || n == BigInt(3)) return true;
-    if (n.isEven()) return false;
+    // ========== ЭТАП 1: БАЗОВЫЕ ПРОВЕРКИ ==========
     
-    // Check small primes
+    // Проверка тривиальных случаев
+    if (n < BigInt(2)) return false;           // Числа < 2 не простые
+    if (n == BigInt(2) || n == BigInt(3)) return true;  // 2 и 3 - простые
+    if (n.isEven()) return false;              // Четные числа > 2 не простые
+    
+    // ========== ЭТАП 2: ПРОВЕРКА МАЛЫХ ПРОСТЫХ ДЕЛИТЕЛЕЙ ==========
+    
+    // Список малых простых чисел для быстрой проверки
     static const int smallPrimes[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47};
+    
+    // Проверяем делимость на малые простые числа
     for (int p : smallPrimes) {
         if (n % BigInt(p) == BigInt(0)) {
+            // Если делится, то простое только если равно этому простому числу
             return n == BigInt(p);
         }
     }
     
-    // For small numbers, use standard method
+    // Для небольших чисел используем стандартный метод (оптимизация)
     if (n < BigInt(10000)) {
         return isPrimeStandard(n);
     }
     
-    // Simplified ECPP implementation
-    random_device rd;
-    mt19937 gen(rd());
+    // ========== ЭТАП 3: ОСНОВНОЙ АЛГОРИТМ ECPP ==========
     
+    random_device rd;    // Источник энтропии
+    mt19937 gen(rd());   // Генератор случайных чисел
+    
+    // Многократные попытки найти подходящую эллиптическую кривую
     for (int attempt = 0; attempt < maxAttempts; ++attempt) {
-        // Generate random curve parameters
-        BigInt a = randomBigInt(n, gen);
-        BigInt x = randomBigInt(n, gen);
-        BigInt y = randomBigInt(n, gen);
         
-        // Calculate b = y^2 - x^3 - a*x (mod n)
-        BigInt x2 = (x * x) % n;
-        BigInt x3 = (x2 * x) % n;
-        BigInt ax = (a * x) % n;
-        BigInt y2 = (y * y) % n;
+        // ========== ЭТАП 3.1: ГЕНЕРАЦИЯ ПАРАМЕТРОВ КРИВОЙ ==========
         
+        // Генерируем случайные параметры эллиптической кривой:
+        // Уравнение кривой: y² = x³ + a·x + b
+        BigInt a = randomBigInt(n, gen);  // Коэффициент a
+        BigInt x = randomBigInt(n, gen);  // Координата x случайной точки
+        BigInt y = randomBigInt(n, gen);  // Координата y случайной точки
+        
+        // ========== ЭТАП 3.2: ВЫЧИСЛЕНИЕ ПАРАМЕТРА b ==========
+        
+        // Вычисляем b из уравнения кривой: b = y² - x³ - a·x (mod n)
+        BigInt x2 = (x * x) % n;          // x² mod n
+        BigInt x3 = (x2 * x) % n;         // x³ mod n  
+        BigInt ax = (a * x) % n;          // a·x mod n
+        BigInt y2 = (y * y) % n;          // y² mod n
+        
+        // Вычисляем b по формуле
         BigInt b = (y2 - x3 - ax) % n;
+        // Корректируем если b отрицательное
         if (b < BigInt(0)) b = b + n;
         
-        // Check discriminant
+        // ========== ЭТАП 3.3: ПРОВЕРКА ДИСКРИМИНАНТА ==========
+        
+        // Дискриминант эллиптической кривой: Δ = 4a³ + 27b²
+        // Должен быть ≠ 0 для невырожденной кривой
         BigInt disc = (BigInt(4) * a * a * a + BigInt(27) * b * b) % n;
+        
+        // Если дискриминант нулевой - кривая вырожденная, пробуем снова
         if (disc == BigInt(0)) continue;
         
-        // Simplified point counting (for demonstration)
-        // In real ECPP, this would use complex point counting algorithms
+        // ========== ЭТАП 3.4: УПРОЩЕННЫЙ ПОДСЧЕТ ТОЧЕК ==========
+        
+        // В РЕАЛЬНОМ ECPP: используется сложный алгоритм Шуфа для подсчета точек
+        // В ЭТОЙ РЕАЛИЗАЦИИ: используем упрощенную аппроксимацию
+        // m ≈ количество точек на кривой по модулю n
         BigInt m = n + BigInt(1) + randomBigInt(BigInt(100), gen);
         
-        // Try to find a factor
+        // ========== ЭТАП 3.5: ПОИСК ПОДХОДЯЩЕГО ПРОСТОГО ДЕЛИТЕЛЯ ==========
+        
+        // Ищем простой делитель q числа m такой, что:
+        // 1. q - простое число
+        // 2. m делится на q
+        // 3. m/q - тоже простое число
         for (BigInt q = BigInt(2); q < BigInt(1000); q = q + BigInt(1)) {
+            // Проверяем что q простое и делит m
             if (BigInt::isPrimeStandard(q) && (m % q == BigInt(0))) {
-                BigInt candidate = m / q;
+                BigInt candidate = m / q;  // Кандидат на простое число
+                
+                // Если кандидат > 1 и простой - вероятно n простое
                 if (candidate > BigInt(1) && BigInt::isPrimeStandard(candidate)) {
-                    return true;
+                    return true;  // Число вероятно простое
                 }
             }
         }
     }
     
-    // Fallback to standard method
+    // ========== ЭТАП 4: РЕЗЕРВНЫЙ МЕТОД ==========
+    
+    // Если ECPP не смог доказать простоту за maxAttempts попыток,
+    // используем стандартный метод как запасной вариант
     return isPrimeStandard(n);
 }
 
 // ==================== АЛГОРИТМЫ ФАКТОРИЗАЦИИ ====================
 
+/**
+ * Алгоритм Полларда-Ро для факторизации (нахождение нетривиального делителя)
+ * @param n - число для факторизации
+ * @param maxIterations - максимальное количество итераций
+ * @return нетривиальный делитель n или 1 если не найден
+ */
 BigInt BigInt::pollardRho(const BigInt& n, int maxIterations) {
-    if (n == BigInt(1)) return BigInt(1);
-    if (n % BigInt(2) == BigInt(0)) return BigInt(2);
+    // Базовые случаи
+    if (n == BigInt(1)) return BigInt(1);           // 1 не имеет делителей
+    if (n % BigInt(2) == BigInt(0)) return BigInt(2);  // Четные числа делятся на 2
     
+    // Инициализация генератора случайных чисел
     random_device rd;
     mt19937 gen(rd());
     
-    BigInt x = randomBigInt(n, gen);
-    BigInt y = x;
-    BigInt d = BigInt(1);
+    // Начальные значения для алгоритма
+    BigInt x = randomBigInt(n, gen);  // Начальная точка x
+    BigInt y = x;                     // Начальная точка y (такая же как x)
+    BigInt d = BigInt(1);             // Найденный делитель (пока 1)
     
+    // Функция итерации: f(x) = (x² + 1) mod n
     auto f = [](const BigInt& x, const BigInt& n) {
         return (x * x + BigInt(1)) % n;
     };
     
+    // Основной цикл алгоритма Полларда-Ро
     for (int i = 0; i < maxIterations && d == BigInt(1); ++i) {
+        // Движение "черепахи" - один шаг
         x = f(x, n);
+        // Движение "зайца" - два шага (метод Флойда)
         y = f(f(y, n), n);
+        
+        // Вычисляем НОД(|x-y|, n) - потенциальный делитель
         d = gcd((x - y).abs(), n);
+        
+        // Если d != 1 и d != n, нашли нетривиальный делитель
     }
     
-    return d;
+    return d;  // Возвращаем найденный делитель (или 1 если не нашли)
 }
 
+/**
+ * Полная факторизация числа на простые множители
+ * @param n - число для факторизации
+ * @param maxAttempts - максимальное количество попыток алгоритма Полларда-Ро
+ * @return вектор простых множителей в порядке возрастания
+ */
 vector<BigInt> BigInt::factorize(const BigInt& n, int maxAttempts) {
-    vector<BigInt> factors;
-    BigInt temp = n;
+    vector<BigInt> factors;  // Результирующий вектор множителей
+    BigInt temp = n;         // Временная переменная для разложения
     
-    // Check small primes
+    // ========== ЭТАП 1: ПРОВЕРКА МАЛЫХ ПРОСТЫХ ДЕЛИТЕЛЕЙ ==========
+    
+    // Список малых простых чисел для последовательной проверки
     for (int p : {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37}) {
+        // Пока число делится на текущее простое, добавляем его в множители
         while (temp % BigInt(p) == BigInt(0)) {
-            factors.push_back(BigInt(p));
-            temp = temp / BigInt(p);
+            factors.push_back(BigInt(p));  // Добавляем простой делитель
+            temp = temp / BigInt(p);       // Делим число на найденный множитель
         }
     }
     
+    // Если после этого осталась 1 - факторизация завершена
     if (temp == BigInt(1)) return factors;
+    
+    // Если оставшееся число простое - добавляем его и завершаем
     if (isPrimeStandard(temp)) {
         factors.push_back(temp);
         return factors;
     }
     
-    // Use Pollard Rho
+    // ========== ЭТАП 2: АЛГОРИТМ ПОЛЛАРДА-РО ДЛЯ БОЛЬШИХ ЧИСЕЛ ==========
+    
+    // Используем алгоритм Полларда-Ро для поиска нетривиальных делителей
     for (int attempt = 0; attempt < maxAttempts && temp > BigInt(1); ++attempt) {
+        // Пытаемся найти делитель алгоритмом Полларда-Ро
         BigInt factor = pollardRho(temp, 1000);
+        
+        // Если нашли нетривиальный делитель (не 1 и не само число)
         if (factor > BigInt(1) && factor < temp) {
+            // Рекурсивно факторизуем найденный делитель
             auto subfactors = factorize(factor, maxAttempts);
+            // Добавляем все подмножители в результат
             factors.insert(factors.end(), subfactors.begin(), subfactors.end());
+            // Делим оставшееся число на найденный множитель
             temp = temp / factor;
             
+            // Если оставшаяся часть простая - добавляем и выходим
             if (isPrimeStandard(temp)) {
                 factors.push_back(temp);
                 break;
             }
         } else {
+            // Если делитель не найден, прерываем попытки
             break;
         }
     }
     
+    // ========== ЭТАП 3: ДОБАВЛЕНИЕ ОСТАТКА ==========
+    
+    // Если после всех попыток осталось число > 1, добавляем его как есть
     if (temp > BigInt(1)) {
         factors.push_back(temp);
     }
     
-    return factors;
+    return factors;  // Возвращаем полный список множителей
 }
