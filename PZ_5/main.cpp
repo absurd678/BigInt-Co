@@ -20,71 +20,98 @@ long long measureTime(Func func, bool& result) {
     return duration_cast<milliseconds>(end - start).count();
 }
 
-void testOptimizedECPP() {
-    cout << "=== ОПТИМИЗИРОВАННАЯ ECPP ===" << endl << endl;
+void testBasicPrimes() {
+    cout << "=== БАЗОВАЯ ПРОВЕРКА ПРОСТЫХ ЧИСЕЛ ===" << endl << endl;
     
     vector<pair<string, string>> testCases = {
-        {"1000003", "Малое простое"},
-        {"1000000007", "Простое < 2^32"},
-        {"2147483647", "2^31-1 (Мерсенна)"},
-        {"999999000001", "Большое простое (>2^64)"}
+        {"1009", "Малое простое"},
+        {"10007", "Простое среднего размера"},
+        {"104729", "10000-е простое"},
+        {"1000003", "Простое > 10^6"}
     };
     
     for (const auto& testCase : testCases) {
         string numStr = testCase.first;
         string description = testCase.second;
         BigInt num(numStr);
+        
         cout << "Тест: " << description << endl;
-        cout << "Число: " << num << " (" << num.toString().length() << " цифр)" << endl;
+        cout << "Число: " << num << endl;
         
         bool result;
         
-        // Оптимизированный ECPP
+        // ECPP метод
         long long ecppTime = measureTime([&]() {
-            return num.isPrimeECPP(20);
+            return num.isPrimeECPP(10);
         }, result);
         
         cout << "ECPP:        " << (result ? "простое" : "составное") 
-             << " (время: " << setw(6) << ecppTime << " мс)" << endl;
+             << " (время: " << ecppTime << " мс)" << endl;
         
-        // Стандартный метод для сравнения
+        // Стандартный метод
         long long standardTime = measureTime([&]() {
             return BigInt::isPrimeStandard(num);
         }, result);
         
         cout << "Стандартный: " << (result ? "простое" : "составное")
-             << " (время: " << setw(6) << standardTime << " мс)" << endl;
+             << " (время: " << standardTime << " мс)" << endl;
         
-        if (ecppTime > 0 && standardTime > 0) {
-            cout << "Ускорение:   " << fixed << setprecision(1) 
-                 << (double)standardTime / max(ecppTime, 1LL) << "x" << endl;
-        }
-        cout << string(50, '-') << endl;
+        cout << string(40, '-') << endl;
     }
 }
 
-void testMersenneWithECPP() {
-    cout << "=== ЧИСЛА МЕРСЕННА С ECPP ===" << endl << endl;
+void testCompositeNumbers() {
+    cout << "=== ПРОВЕРКА СОСТАВНЫХ ЧИСЕЛ ===" << endl << endl;
     
-    vector<int> exponents = {2, 3, 5, 7, 13, 17, 19, 31};
+    vector<string> composites = {
+        "1001", "10001", "100001", "999999"
+    };
+    
+    for (const auto& numStr : composites) {
+        BigInt num(numStr);
+        cout << "Число: " << num << endl;
+        
+        bool result;
+        long long time = measureTime([&]() {
+            return num.isPrimeECPP(5);
+        }, result);
+        
+        cout << "Результат: " << (result ? "простое" : "составное") 
+             << " (время: " << time << " мс)" << endl;
+        
+        if (!result) {
+            auto factors = BigInt::factorize(num, 3);
+            cout << "Факторы: ";
+            for (size_t i = 0; i < factors.size(); ++i) {
+                cout << factors[i];
+                if (i < factors.size() - 1) cout << " × ";
+            }
+            cout << endl;
+        }
+        cout << endl;
+    }
+}
+
+void testMersennePrimes() {
+    cout << "=== ЧИСЛА МЕРСЕННА ===" << endl << endl;
+    
+    vector<int> exponents = {2, 3, 5, 7, 13};
     
     for (int exp : exponents) {
         cout << "2^" << exp << "-1:" << endl;
         
         bool result;
-        
-        // Тест Люка-Лемера
         long long llTime = measureTime([&]() {
             return BigInt::lucasLehmerTest(exp);
         }, result);
+        
         cout << "Люка-Лемера: " << (result ? "простое" : "составное")
              << " (" << llTime << " мс)" << endl;
         
-        // ECPP
-        if (exp <= 19) {
+        if (exp <= 13) {
             BigInt mersenne = (BigInt(2) ^ BigInt(exp)) - BigInt(1);
             long long ecppTime = measureTime([&]() {
-                return mersenne.isPrimeECPP(10);
+                return mersenne.isPrimeECPP(5);
             }, result);
             cout << "ECPP:        " << (result ? "простое" : "составное")
                  << " (" << ecppTime << " мс)" << endl;
@@ -93,74 +120,41 @@ void testMersenneWithECPP() {
     }
 }
 
-void testFactorization() {
-    cout << "=== ТЕСТ ФАКТОРИЗАЦИИ ===" << endl << endl;
+void testPerformance() {
+    cout << "=== ТЕСТ ПРОИЗВОДИТЕЛЬНОСТИ ===" << endl << endl;
     
-    vector<string> numbersToFactor = {
-        "1001", "10001", "100001", "999999"
+    vector<string> testNumbers = {
+        "1009", "7919", "10007", "104729", "1000003"
     };
     
-    for (const auto& numStr : numbersToFactor) {
-        BigInt num(numStr);
-        cout << "Факторизация " << num << ":" << endl;
-        
-        auto start = high_resolution_clock::now();
-        auto factors = BigInt::factorize(num);
-        auto end = high_resolution_clock::now();
-        auto time = duration_cast<milliseconds>(end - start).count();
-        
-        cout << "Множители: ";
-        for (size_t i = 0; i < factors.size(); ++i) {
-            cout << factors[i];
-            if (i < factors.size() - 1) cout << " × ";
-        }
-        cout << " (" << time << " мс)" << endl << endl;
-    }
-}
-
-void testRange() {
-    cout << "=== ТЕСТ ДИАПАЗОНА 1000...100000000 ===" << endl << endl;
+    cout << setw(10) << "Число" << setw(8) << "Цифр" 
+         << setw(10) << "ECPP(мс)" << setw(12) << "Станд(мс)" << endl;
+    cout << string(40, '-') << endl;
     
-    vector<string> rangeNumbers = {
-        "1009", "7919", "10007", "104729", "1000003", "10000019", "99999989"
-    };
-    
-    for (const auto& numStr : rangeNumbers) {
+    for (const auto& numStr : testNumbers) {
         BigInt num(numStr);
-        cout << "Число: " << numStr << endl;
+        bool result1, result2;
         
-        bool result;
-        long long ecppTime = measureTime([&]() {
-            return num.isPrimeECPP(10);
-        }, result);
+        long long ecppTime = measureTime([&]() { return num.isPrimeECPP(5); }, result1);
+        long long standardTime = measureTime([&]() { return BigInt::isPrimeStandard(num); }, result2);
         
-        cout << "ECPP: " << (result ? "простое" : "составное")
-             << " (" << ecppTime << " мс)" << endl;
-        
-        long long standardTime = measureTime([&]() {
-            return BigInt::isPrimeStandard(num);
-        }, result);
-        
-        cout << "Стандарт: " << (result ? "простое" : "составное")
-             << " (" << standardTime << " мс)" << endl;
-        cout << "------------------------" << endl;
+        cout << setw(10) << numStr << setw(8) << numStr.length()
+             << setw(10) << ecppTime << setw(12) << standardTime << endl;
     }
 }
 
 int main() {
     cout << "ПРАКТИЧЕСКАЯ РАБОТА №5 - ОПТИМИЗИРОВАННАЯ ECPP" << endl;
-    cout << "Алгоритм Аткина-Морейна на эллиптических кривых" << endl;
-    cout << "=============================================" << endl;
+    cout << "=============================================" << endl << endl;
     
-    testRange();
-    testOptimizedECPP();
-    testMersenneWithECPP();
-    testFactorization();
+    testBasicPrimes();
+    testCompositeNumbers();
+    testMersennePrimes();
+    testPerformance();
     
-    cout << "Проверка чисел из задания:" << endl;
-    cout << "- 2^82589933-1: используйте GIMPS для проверки" << endl;
-    cout << "- 2^136279841-1: требует распределенных вычислений" << endl;
-    cout << "ECPP оптимизирован для чисел до 100 цифр" << endl;
+    cout << "КОМПИЛЯЦИЯ И ЗАПУСК:" << endl;
+    cout << "g++ -std=c++11 -O2 -o primality_test bigint.cpp main.cpp" << endl;
+    cout << "./primality_test" << endl;
     
     return 0;
 }

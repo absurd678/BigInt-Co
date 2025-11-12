@@ -24,10 +24,6 @@ private:
     BigInt multiplyByDigit(int digit) const;
     BigInt divideByDigit(int digit) const;
 
-    // Вспомогательные методы для факторизации
-    static BigInt pollardRho(const BigInt& n, int maxIterations = 10000);
-    static BigInt pollardPMinus1(const BigInt& n, int maxB = 10000);
-
 public:
     // ==================== КОНСТРУКТОРЫ ====================
     BigInt();
@@ -102,7 +98,6 @@ public:
     static BigInt gcd(BigInt a, BigInt b);
     static BigInt lcm(const BigInt& a, const BigInt& b);
     static BigInt generateRandomPrime(int numDigits, std::mt19937& gen);
-    bool isPrime(int iterations = 10) const;
 
     // ==================== МЕТОДЫ ПРОВЕРКИ ПРОСТОТЫ ====================
     static bool isPrimeStandard(const BigInt& n);
@@ -112,18 +107,17 @@ public:
     static BigInt sqrt(const BigInt& n);
     static BigInt modPow(const BigInt& base, const BigInt& exponent, const BigInt& mod);
     static BigInt log(const BigInt& n);
+    bool isPrime(int iterations = 10) const;
 
     // ==================== ECPP МЕТОДЫ ====================
-    bool isPrimeECPP(int maxAttempts = 100) const;
+    bool isPrimeECPP(int maxAttempts = 20) const;
     
     // Вспомогательные методы для ECPP
-    static bool findEllipticCurve(const BigInt& n, BigInt& a, BigInt& b, BigInt& x, BigInt& y, int maxAttempts);
-    static BigInt countPointsOnCurve(const BigInt& a, const BigInt& b, const BigInt& p);
-    static bool verifyPrimalityConditions(const BigInt& n, const BigInt& m, const BigInt& q);
     static BigInt randomBigInt(const BigInt& max, std::mt19937& gen);
     
-    // Методы факторизации (сделаем публичными для тестирования)
-    static std::vector<BigInt> factorize(const BigInt& n, int maxAttempts = 10);
+    // Методы факторизации
+    static std::vector<BigInt> factorize(const BigInt& n, int maxAttempts = 5);
+    static BigInt pollardRho(const BigInt& n, int maxIterations = 1000);
 };
 
 #endif
