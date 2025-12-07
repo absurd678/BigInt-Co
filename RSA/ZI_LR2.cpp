@@ -1,4 +1,11 @@
-﻿#include <iostream>
+﻿/*# Compile
+g++ -std=c++11 -pthread -I. -o rsa ZI_LR2.cpp
+
+# Run
+./rsa
+*/
+
+#include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -62,8 +69,10 @@ int main() {
     const string ct_file = "cipher.txt";
     const string dt_file = "decrypt.txt";
     
+    /*
     // Создаем тестовые файлы, если их нет
     {
+        
         ofstream f(p_file);
         if (f) f << "101" << endl;  // Простое число
         f.close();
@@ -72,11 +81,12 @@ int main() {
         if (f) f << "103" << endl;  // Простое число  
         f.close();
         
+
         f.open(pt_file);
         if (f) f << "Hello RSA!" << endl;
         f.close();
     }
-    
+    */
     cout << "1. Reading input files..." << endl;
     
     // Читаем p, q и plaintext
