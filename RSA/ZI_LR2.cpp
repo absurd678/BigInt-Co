@@ -139,9 +139,9 @@ int main() {
     BigInt n, e, d;
     RSA_Initialize_FromPQ(p, q, n, e, d);
     
-    cout << "\n4. Calculating maximum block size..." << endl;
+    //cout << "\n4. Calculating maximum block size..." << endl;
     size_t maxBlockSize = GetMaxMessageSize(n);
-    cout << "   Can encrypt " << maxBlockSize << " characters per block" << endl;
+    //cout << "   Can encrypt " << maxBlockSize << " characters per block" << endl;
     
     if (maxBlockSize == 0) {
         cerr << "Error: RSA modulus n is too small to encrypt even one character!" << endl;
@@ -150,7 +150,7 @@ int main() {
         return 1;
     }
     
-    cout << "\n5. Encrypting plaintext in blocks..." << endl;
+    cout << "\n4. Encrypting plaintext..." << endl;
     vector<string> cipher;
     RSA_Encrypt_Block(plaintext, n, e, cipher);
     
@@ -159,7 +159,7 @@ int main() {
         return 1;
     }
     
-    cout << "\n6. Writing ciphertext to file..." << endl;
+    cout << "\n5. Writing ciphertext to file..." << endl;
     ofstream fout_ct(ct_file);
     if (!fout_ct) { 
         cerr << "Error writing to " << ct_file << endl; 
@@ -172,12 +172,12 @@ int main() {
         fout_ct << cipher[i] << "\n";
     }
     fout_ct.close();
-    cout << "   Ciphertext written to " << ct_file << " (" << cipher.size() << " blocks)" << endl;
+    cout << "   Ciphertext written to " << ct_file << endl; //" (" << cipher.size() << " blocks)" << endl;
     
-    cout << "\n7. Decrypting ciphertext..." << endl;
+    cout << "\n6. Decrypting ciphertext..." << endl;
     string recovered = RSA_Decrypt_Block(cipher, n, d, p, q);
     
-    cout << "\n8. Writing decrypted text to file..." << endl;
+    cout << "\n7. Writing decrypted text to file..." << endl;
     ofstream fout_dt(dt_file);
     if (!fout_dt) { 
         cerr << "Error writing to " << dt_file << endl; 

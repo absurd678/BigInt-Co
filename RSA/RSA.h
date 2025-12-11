@@ -180,16 +180,16 @@ inline void RSA_Encrypt_Block(const string& plaintext,
         return;
     }
     
-    cout << "Max block size: " << maxBlockSize << " characters" << endl;
+    //cout << "Max block size: " << maxBlockSize << " characters" << endl;
     
     // Split message into chunks
     vector<string> chunks = SplitMessage(plaintext, maxBlockSize);
-    cout << "Message split into " << chunks.size() << " chunk(s)" << endl;
+    //cout << "Message split into " << chunks.size() << " chunk(s)" << endl;
     
     // Encrypt each chunk
     for (size_t i = 0; i < chunks.size(); ++i) {
-        cout << "\nChunk " << i + 1 << "/" << chunks.size() 
-             << " (size: " << chunks[i].size() << " chars):" << endl;
+        // cout << "\nChunk " << i + 1 << "/" << chunks.size() 
+        //      << " (size: " << chunks[i].size() << " chars):" << endl;
         cout << "Text: \"" << chunks[i] << "\"" << endl;
         
         // Convert chunk to BigInt
@@ -312,7 +312,7 @@ inline string RSA_Decrypt_Block(const vector<string>& cipher,
     
     // Decrypt each chunk
     for (size_t i = 0; i < cipher.size(); ++i) {
-        cout << "\nDecrypting chunk " << i + 1 << "/" << cipher.size() << endl;
+        //cout << "\nDecrypting chunk " << i + 1 << "/" << cipher.size() << endl;
         cout << "Ciphertext: " << cipher[i] << endl;
         
         BigInt C(cipher[i]);
