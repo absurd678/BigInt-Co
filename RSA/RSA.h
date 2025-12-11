@@ -111,20 +111,102 @@ inline void RSA_Initialize_FromPQ(const BigInt& p, const BigInt& q,
     cout << "d = " << d << endl;
 }
 
-// Шифрование текста: каждый символ преобразуется в c = m^e mod n
-inline void RSA_Encrypt_FromKeys(const string& plaintext, 
-                                 const BigInt& n, const BigInt& e, 
-                                 vector<string>& out) {
-    out.clear(); 
-    out.reserve(plaintext.size());
-    cout << "Encrypting " << plaintext.size() << " characters..." << endl;
+// Convert string to BigInt (encode entire message as a number)
+inline BigInt StringToBigInt(const string& str) {
+    BigInt result("0");
+    for (char c : str) {
+        result = result * "256";  // Shift left by 8 bits
+        result = result + BigInt((int)c);
+    }
+    return result;
+}
+
+// Convert BigInt back to string
+inline string BigIntToString(const BigInt& num) {
+    string result;
+    BigInt temp = num;
+    BigInt zero("0");
     
-    for (size_t i = 0; i < plaintext.size(); ++i) {
-        unsigned char ch = plaintext[i];
-        BigInt m((int)ch);                              // Преобразуем символ в число
-        cout << "Char " << i << ": '" << ch << "' = " << (int)ch << endl;
+    while (temp > zero) {
+        BigInt remainder = temp % "256";
+        // Convert remainder to char
+        int remainder_int = 0;
+        for (int i = Length(remainder) - 1; i >= 0; --i) {
+            remainder_int = remainder_int * 10 + remainder[i];
+        }
+        char ch = (char)remainder_int;
+        result = ch + result;
+        temp = temp / "256";
+    }
+    
+    return result;
+}
+
+// Get maximum message size that can be encrypted with given n
+inline size_t GetMaxMessageSize(const BigInt& n) {
+    // Message must be < n, and we encode each character as a byte (0-255)
+    // So we need to find how many characters can fit in a number < n
+    
+    BigInt maxMsg("1");
+    size_t charCount = 0;
+    
+    while (maxMsg * "256" < n) {
+        maxMsg = maxMsg * "256";
+        charCount++;
+    }
+    
+    return charCount;
+}
+
+// Split message into chunks that can be encrypted
+inline vector<string> SplitMessage(const string& message, size_t chunkSize) {
+    vector<string> chunks;
+    for (size_t i = 0; i < message.length(); i += chunkSize) {
+        chunks.push_back(message.substr(i, min(chunkSize, message.length() - i)));
+    }
+    return chunks;
+}
+
+// Encrypt entire message in blocks
+inline void RSA_Encrypt_Block(const string& plaintext, 
+                              const BigInt& n, const BigInt& e,
+                              vector<string>& out) {
+    out.clear();
+    
+    // Calculate maximum block size
+    size_t maxBlockSize = GetMaxMessageSize(n);
+    if (maxBlockSize == 0) {
+        cerr << "Error: n is too small to encrypt even one character!" << endl;
+        return;
+    }
+    
+    cout << "Max block size: " << maxBlockSize << " characters" << endl;
+    
+    // Split message into chunks
+    vector<string> chunks = SplitMessage(plaintext, maxBlockSize);
+    cout << "Message split into " << chunks.size() << " chunk(s)" << endl;
+    
+    // Encrypt each chunk
+    for (size_t i = 0; i < chunks.size(); ++i) {
+        cout << "\nChunk " << i + 1 << "/" << chunks.size() 
+             << " (size: " << chunks[i].size() << " chars):" << endl;
+        cout << "Text: \"" << chunks[i] << "\"" << endl;
         
-        string encrypted = Modular_Exonentiation(m, e, n);  // Шифруем: m^e mod n
+        // Convert chunk to BigInt
+        BigInt m = StringToBigInt(chunks[i]);
+        cout << "As number: " << m << endl;
+        
+        // Check that m < n (RSA requirement)
+        if (m >= n) {
+            cerr << "Error: Message is too large for the modulus!" << endl;
+            cerr << "Message: " << m << endl;
+            cerr << "Modulus: " << n << endl;
+            out.clear();
+            return;
+        }
+        
+        // Encrypt
+        string encrypted = Modular_Exonentiation(m, e, n);
         out.push_back(encrypted);
         
         cout << "Encrypted to: " << encrypted << endl;
@@ -222,23 +304,54 @@ inline BigInt RSA_Decrypt_One_CRT(const BigInt& c,
     return m;
 }
 
-// Быстрое дешифрование массива зашифрованных сообщений с CRT
+// Decrypt entire message in blocks
+inline string RSA_Decrypt_Block(const vector<string>& cipher,
+                               const BigInt& n, const BigInt& d,
+                               const BigInt& p, const BigInt& q) {
+    string result;
+    
+    // Decrypt each chunk
+    for (size_t i = 0; i < cipher.size(); ++i) {
+        cout << "\nDecrypting chunk " << i + 1 << "/" << cipher.size() << endl;
+        cout << "Ciphertext: " << cipher[i] << endl;
+        
+        BigInt C(cipher[i]);
+        BigInt M;
+        
+        // Use CRT for faster decryption
+        M = RSA_Decrypt_One_CRT(C, p, q, d);
+        
+        // Convert back to string
+        string chunkText = BigIntToString(M);
+        result += chunkText;
+        
+        cout << "Decrypted text: \"" << chunkText << "\"" << endl;
+    }
+    
+    return result;
+}
+
+// Old functions (kept for compatibility)
+inline void RSA_Encrypt_FromKeys(const string& plaintext, 
+                                 const BigInt& n, const BigInt& e, 
+                                 vector<string>& out) {
+    // For backward compatibility - uses block encryption
+    RSA_Encrypt_Block(plaintext, n, e, out);
+}
+
 inline void RSA_Decrypt_FromKeys_CRT_Fast(const std::vector<std::string>& cipher,
                                           const BigInt& n, const BigInt& d,
                                           const BigInt& p, const BigInt& q,
                                           std::vector<std::string>& out) {
+    // For backward compatibility
     out.clear(); 
     out.reserve(cipher.size());
-    cout << "Decrypting " << cipher.size() << " ciphertexts..." << endl;
     
     for (size_t i = 0; i < cipher.size(); ++i) {
-        const std::string& cs = cipher[i];
-        BigInt C(cs);                                   // Преобразуем строку в число
-        cout << "Ciphertext " << i << ": " << cs << endl;
+        BigInt C(cipher[i]);
+        BigInt M = RSA_Decrypt_One_CRT(C, p, q, d);
         
-        BigInt M = RSA_Decrypt_One_CRT(C, p, q, d);     // Дешифруем с CRT
-        
-        // Преобразуем результат обратно в строку
+        // Convert to string
         std::string s; 
         s.reserve(Length(M));
         for (int j = Length(M) - 1; j >= 0; --j) 
@@ -246,7 +359,5 @@ inline void RSA_Decrypt_FromKeys_CRT_Fast(const std::vector<std::string>& cipher
         
         if (s.empty()) s = "0";
         out.push_back(s);
-        
-        cout << "Decrypted to: " << s << endl;
     }
 }

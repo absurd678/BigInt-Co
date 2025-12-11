@@ -56,6 +56,43 @@ static bool read_whole_line(const string& path, string& out) {
     return true;
 }
 
+// Read ciphertext from file (multiple lines)
+static bool read_ciphertext(const string& path, vector<string>& out) {
+    ifstream fin(path);
+    if (!fin) {
+        cerr << "Cannot open file: " << path << endl;
+        return false;
+    }
+    
+    out.clear();
+    string line;
+    
+    // Read number of blocks (first line)
+    if (!getline(fin, line)) {
+        cerr << "Cannot read number of blocks from: " << path << endl;
+        return false;
+    }
+    
+    int numBlocks;
+    try {
+        numBlocks = stoi(line);
+    } catch (...) {
+        cerr << "Invalid number of blocks in: " << path << endl;
+        return false;
+    }
+    
+    // Read each block
+    for (int i = 0; i < numBlocks; ++i) {
+        if (!getline(fin, line)) {
+            cerr << "Cannot read block " << i << " from: " << path << endl;
+            return false;
+        }
+        out.push_back(line);
+    }
+    
+    return true;
+}
+
 int main() {
     setlocale(LC_ALL, "Ru");
     cout << "=== RSA Encryption/Decryption Program ===" << endl;
@@ -69,24 +106,6 @@ int main() {
     const string ct_file = "cipher.txt";
     const string dt_file = "decrypt.txt";
     
-    /*
-    // Создаем тестовые файлы, если их нет
-    {
-        
-        ofstream f(p_file);
-        if (f) f << "101" << endl;  // Простое число
-        f.close();
-        
-        f.open(q_file);
-        if (f) f << "103" << endl;  // Простое число  
-        f.close();
-        
-
-        f.open(pt_file);
-        if (f) f << "Hello RSA!" << endl;
-        f.close();
-    }
-    */
     cout << "1. Reading input files..." << endl;
     
     // Читаем p, q и plaintext
@@ -109,6 +128,7 @@ int main() {
     cout << "   p = " << p_str << endl;
     cout << "   q = " << q_str << endl;
     cout << "   plaintext = \"" << plaintext << "\"" << endl;
+    cout << "   plaintext length = " << plaintext.length() << " characters" << endl;
     
     cout << "\n2. Converting to BigInt..." << endl;
     // Преобразование строк в BigInt для работы с большими числами
@@ -119,80 +139,78 @@ int main() {
     BigInt n, e, d;
     RSA_Initialize_FromPQ(p, q, n, e, d);
     
-    cout << "\n4. Encrypting plaintext..." << endl;
-    // Шифрование: каждый символ преобразуется в c = m^e mod n
-    vector<string> cipher;
-    RSA_Encrypt_FromKeys(plaintext, n, e, cipher);
+    cout << "\n4. Calculating maximum block size..." << endl;
+    size_t maxBlockSize = GetMaxMessageSize(n);
+    cout << "   Can encrypt " << maxBlockSize << " characters per block" << endl;
     
-    cout << "\n5. Writing ciphertext to file..." << endl;
-    // Запись шифртекста в файл
+    if (maxBlockSize == 0) {
+        cerr << "Error: RSA modulus n is too small to encrypt even one character!" << endl;
+        cerr << "n = " << n << endl;
+        cerr << "Try using larger prime numbers." << endl;
+        return 1;
+    }
+    
+    cout << "\n5. Encrypting plaintext in blocks..." << endl;
+    vector<string> cipher;
+    RSA_Encrypt_Block(plaintext, n, e, cipher);
+    
+    if (cipher.empty()) {
+        cerr << "Error: Encryption failed!" << endl;
+        return 1;
+    }
+    
+    cout << "\n6. Writing ciphertext to file..." << endl;
     ofstream fout_ct(ct_file);
     if (!fout_ct) { 
         cerr << "Error writing to " << ct_file << endl; 
         return 1; 
     }
-    
+
+    // Write number of blocks first
+    fout_ct << cipher.size() << "\n";
     for (size_t i = 0; i < cipher.size(); ++i) {
-        if (i) fout_ct << ' ';
-        fout_ct << cipher[i];
+        fout_ct << cipher[i] << "\n";
     }
-    fout_ct << "\n";
     fout_ct.close();
-    cout << "   Ciphertext written to " << ct_file << endl;
+    cout << "   Ciphertext written to " << ct_file << " (" << cipher.size() << " blocks)" << endl;
     
-    cout << "\n6. Decrypting ciphertext..." << endl;
-    // Дешифрование (m = c^d mod n)
-    vector<string> decrypted_nums;
-    RSA_Decrypt_FromKeys_CRT_Fast(cipher, n, d, p, q, decrypted_nums);
+    cout << "\n7. Decrypting ciphertext..." << endl;
+    string recovered = RSA_Decrypt_Block(cipher, n, d, p, q);
     
-    cout << "\n7. Writing decrypted numbers to file..." << endl;
-    // Запись расшифрованных чисел в файл
+    cout << "\n8. Writing decrypted text to file..." << endl;
     ofstream fout_dt(dt_file);
     if (!fout_dt) { 
         cerr << "Error writing to " << dt_file << endl; 
         return 1; 
     }
-    
-    for (size_t i = 0; i < decrypted_nums.size(); ++i) {
-        if (i) fout_dt << ' ';
-        fout_dt << decrypted_nums[i];
-    }
-    fout_dt << "\n";
+    fout_dt << recovered << "\n";
     fout_dt.close();
-    cout << "   Decrypted numbers written to " << dt_file << endl;
+    cout << "   Decrypted text written to " << dt_file << endl;
     
-    cout << "\n8. Converting decrypted numbers back to text..." << endl;
-    // Преобразование расшифрованных чисел обратно в текст
-    bool ok_text = true;
-    string recovered;
+    cout << "\n9. Verifying decryption..." << endl;
+    cout << "   Original plaintext: \"" << plaintext << "\"" << endl;
+    cout << "   Recovered plaintext: \"" << recovered << "\"" << endl;
     
-    for (const string& num : decrypted_nums) {
-        long long v = 0;
-        for (char c : num) { 
-            v = v * 10 + (c - '0'); 
-            if (v > 255) { 
-                ok_text = false; 
-                break; 
+    if (recovered == plaintext) {
+        cout << "\n✓ SUCCESS: Original and recovered texts match!" << endl;
+    } else {
+        cout << "\n✗ FAILURE: Original and recovered texts DO NOT match!" << endl;
+        // Find where they differ
+        size_t minLen = min(plaintext.length(), recovered.length());
+        for (size_t i = 0; i < minLen; ++i) {
+            if (plaintext[i] != recovered[i]) {
+                cout << "   First difference at position " << i 
+                     << ": original='" << plaintext[i] 
+                     << "' (ASCII " << (int)plaintext[i] << "), "
+                     << "recovered='" << recovered[i] 
+                     << "' (ASCII " << (int)recovered[i] << ")" << endl;
+                break;
             }
         }
-        
-        if (!ok_text) break;
-        recovered.push_back(static_cast<char>(v));
-    }
-    
-    if (ok_text) {
-        cout << "   Recovered plaintext: \"" << recovered << "\"" << endl;
-        
-        // Проверка
-        if (recovered == plaintext) {
-            cout << "\n✓ SUCCESS: Original and recovered texts match!" << endl;
-        } else {
-            cout << "\n✗ FAILURE: Original and recovered texts DO NOT match!" << endl;
-            cout << "   Original: \"" << plaintext << "\"" << endl;
-            cout << "   Recovered: \"" << recovered << "\"" << endl;
+        if (plaintext.length() != recovered.length()) {
+            cout << "   Length mismatch: original=" << plaintext.length() 
+                 << ", recovered=" << recovered.length() << endl;
         }
-    } else {
-        cout << "   Error: Could not convert numbers back to text" << endl;
     }
     
     cout << "\n=== Program completed ===" << endl;
